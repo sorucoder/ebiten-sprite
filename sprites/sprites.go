@@ -142,13 +142,12 @@ func (sprite *Sprite) Stop() {
 	sprite.paused = true
 }
 
-func (sprite *Sprite) Update() {
+func (sprite *Sprite) Update(at time.Time) {
 	if sprite.paused {
 		return
 	}
 
-	now := time.Now()
-	elapsed := now.Sub(sprite.last)
+	elapsed := at.Sub(sprite.last)
 	duration := sprite.animation.Frames[sprite.frame].Duration * time.Duration(sprite.Speed)
 	if elapsed < duration {
 		return
@@ -163,7 +162,7 @@ func (sprite *Sprite) Update() {
 	} else {
 		sprite.frame++
 	}
-	sprite.last = now
+	sprite.last = at
 }
 
 func (sprite *Sprite) Draw(target *ebiten.Image) {
