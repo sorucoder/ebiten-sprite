@@ -110,6 +110,14 @@ func NewSprite(animation *Animation) *Sprite {
 	}
 }
 
+func (sprite *Sprite) SetAnimation(animation *Animation, repeat bool) {
+	sprite.animation = animation
+	sprite.frame = 0
+	sprite.paused = true
+	sprite.repeat = repeat
+	sprite.last = time.Now()
+}
+
 func (sprite *Sprite) Start() {
 	if !sprite.paused {
 		return
