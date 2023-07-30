@@ -1,0 +1,187 @@
+package sprites
+
+import (
+	"time"
+
+	"github.com/hajimehoshi/ebiten/v2"
+)
+
+type (
+	HorizonalAlignment func(x float64, width float64) float64
+	VerticalAlignment  func(y float64, height float64) float64
+	Alignment          func(x float64, y float64, width float64, height float64) (float64, float64)
+)
+
+var (
+	Left HorizonalAlignment = func(x float64, width float64) float64 {
+		return x
+	}
+
+	Center HorizonalAlignment = func(x float64, width float64) float64 {
+		return x - (width / 2)
+	}
+
+	Right HorizonalAlignment = func(x float64, width float64) float64 {
+		return x - width
+	}
+
+	Top VerticalAlignment = func(y float64, height float64) float64 {
+		return y
+	}
+
+	Middle VerticalAlignment = func(y float64, height float64) float64 {
+		return y - (height / 2)
+	}
+
+	Bottom VerticalAlignment = func(y float64, height float64) float64 {
+		return y - height
+	}
+
+	TopLeft Alignment = func(x float64, y float64, width float64, height float64) (float64, float64) {
+		return Left(x, width), Top(y, height)
+	}
+
+	TopCenter Alignment = func(x float64, y float64, width float64, height float64) (float64, float64) {
+		return Center(x, width), Top(y, height)
+	}
+
+	TopRight Alignment = func(x float64, y float64, width float64, height float64) (float64, float64) {
+		return Right(x, width), Top(y, height)
+	}
+
+	MiddleLeft Alignment = func(x float64, y float64, width float64, height float64) (float64, float64) {
+		return Left(x, width), Middle(y, height)
+	}
+
+	MiddleCenter Alignment = func(x float64, y float64, width float64, height float64) (float64, float64) {
+		return Center(x, width), Middle(y, height)
+	}
+
+	MiddleRight Alignment = func(x float64, y float64, width float64, height float64) (float64, float64) {
+		return Right(x, width), Middle(y, height)
+	}
+
+	BottomLeft Alignment = func(x float64, y float64, width float64, height float64) (float64, float64) {
+		return Left(x, width), Bottom(y, height)
+	}
+
+	BottomMiddle Alignment = func(x float64, y float64, width float64, height float64) (float64, float64) {
+		return Middle(x, width), Bottom(y, height)
+	}
+
+	BottomRight Alignment = func(x float64, y float64, width float64, height float64) (float64, float64) {
+		return Right(x, width), Bottom(y, height)
+	}
+)
+
+type Sprite struct {
+	X      float64
+	Y      float64
+	Origin Alignment
+	Scale  float64
+	Speed  float64
+	Angle  float64
+
+	animation *Animation
+	frame     int
+	paused    bool
+	visible   bool
+	repeat    bool
+	last      time.Time
+	options   *ebiten.DrawImageOptions
+}
+
+func NewSprite(animation *Animation) *Sprite {
+	return &Sprite{
+		X:      0.0,
+		Y:      0.0,
+		Origin: TopLeft,
+		Scale:  1.0,
+		Speed:  1.0,
+		Angle:  0.0,
+
+		animation: animation,
+		frame:     0,
+		paused:    false,
+		visible:   true,
+		repeat:    true,
+		last:      time.Now(),
+		options:   new(ebiten.DrawImageOptions),
+	}
+}
+
+func (sprite *Sprite) Start() {
+	if !sprite.paused {
+		return
+	}
+
+	sprite.frame = 0
+	sprite.last = time.Now()
+	sprite.paused = false
+}
+
+func (sprite *Sprite) Stop() {
+	if sprite.paused {
+		return
+	}
+
+	sprite.frame = 0
+	sprite.last = time.Now()
+	sprite.paused = true
+}
+
+func (sprite *Sprite) Update() {
+	// Don't update paused or non-visible objects.
+	if !sprite.visible || sprite.paused {
+		return
+	}
+
+	now := time.Now()
+	elapsed := now.Sub(sprite.last)
+	duration := sprite.animation.Frames[sprite.frame].Duration * time.Duration(sprite.Speed)
+
+	// Frame change threshold not reached.
+	if elapsed < duration {
+		return
+	}
+
+	// Is this the final frame?
+	if sprite.frame >= len(sprite.animation.Frames)-1 {
+		if sprite.repeat {
+			// Restart the loop.
+			sprite.frame = 0
+		} else {
+			// If repeat is disabled, pause the animation after the final frame.
+			sprite.paused = true
+		}
+	} else {
+		// Not the last frame.  Increment current frame by one.
+		sprite.frame++
+	}
+
+	// Reset the update timer.
+	sprite.last = now
+}
+
+func (sprite *Sprite) Draw(target *ebiten.Image) {
+	// Don't draw non-visible objects.
+	if !sprite.visible {
+		return
+	}
+
+	// Calculate values.
+	frame := sprite.animation.Frames[sprite.frame]
+	bounds := frame.Image.Bounds()
+	width, height := bounds.Dx(), bounds.Dy()
+	drawWidth := float64(width) * sprite.Scale
+	drawHeight := float64(height) * sprite.Scale
+	drawX, drawY := sprite.Origin(sprite.X, sprite.Y, drawWidth, drawHeight)
+
+	// Apply transformations.
+	sprite.options.GeoM.Reset()
+	sprite.options.GeoM.Scale(sprite.Scale, sprite.Scale)
+	sprite.options.GeoM.Translate(drawX, drawY)
+	sprite.options.GeoM.Rotate(sprite.Angle)
+
+	target.DrawImage(frame.Image, sprite.options)
+}
