@@ -1,7 +1,7 @@
 package sprites
 
-// SpriteSheetLoader loads named Animations from a sprite sheet.
-type SpriteSheetLoader interface {
+// Spritesheet loads named Animations from a sprite sheet.
+type Spritesheet interface {
 	// Animation returns the tagged animation with the specified name.
 	Animation(name string) (*Animation, error)
 

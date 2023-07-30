@@ -85,7 +85,7 @@ type Sprite struct {
 	animation *Animation
 	frame     int
 	paused    bool
-	visible   bool
+	Visible   bool
 	repeat    bool
 	last      time.Time
 	options   *ebiten.DrawImageOptions
@@ -93,17 +93,17 @@ type Sprite struct {
 
 func NewSprite(animation *Animation) *Sprite {
 	return &Sprite{
-		X:      0.0,
-		Y:      0.0,
-		Origin: TopLeft,
-		Scale:  1.0,
-		Speed:  1.0,
-		Angle:  0.0,
+		X:       0.0,
+		Y:       0.0,
+		Origin:  TopLeft,
+		Scale:   1.0,
+		Speed:   1.0,
+		Angle:   0.0,
+		Visible: true,
 
 		animation: animation,
 		frame:     0,
 		paused:    false,
-		visible:   true,
 		repeat:    true,
 		last:      time.Now(),
 		options:   new(ebiten.DrawImageOptions),
@@ -131,45 +131,34 @@ func (sprite *Sprite) Stop() {
 }
 
 func (sprite *Sprite) Update() {
-	// Don't update paused or non-visible objects.
-	if !sprite.visible || sprite.paused {
+	if sprite.paused {
 		return
 	}
 
 	now := time.Now()
 	elapsed := now.Sub(sprite.last)
 	duration := sprite.animation.Frames[sprite.frame].Duration * time.Duration(sprite.Speed)
-
-	// Frame change threshold not reached.
 	if elapsed < duration {
 		return
 	}
 
-	// Is this the final frame?
 	if sprite.frame >= len(sprite.animation.Frames)-1 {
 		if sprite.repeat {
-			// Restart the loop.
 			sprite.frame = 0
 		} else {
-			// If repeat is disabled, pause the animation after the final frame.
 			sprite.paused = true
 		}
 	} else {
-		// Not the last frame.  Increment current frame by one.
 		sprite.frame++
 	}
-
-	// Reset the update timer.
 	sprite.last = now
 }
 
 func (sprite *Sprite) Draw(target *ebiten.Image) {
-	// Don't draw non-visible objects.
-	if !sprite.visible {
+	if !sprite.Visible {
 		return
 	}
 
-	// Calculate values.
 	frame := sprite.animation.Frames[sprite.frame]
 	bounds := frame.Image.Bounds()
 	width, height := bounds.Dx(), bounds.Dy()
@@ -177,7 +166,6 @@ func (sprite *Sprite) Draw(target *ebiten.Image) {
 	drawHeight := float64(height) * sprite.Scale
 	drawX, drawY := sprite.Origin(sprite.X, sprite.Y, drawWidth, drawHeight)
 
-	// Apply transformations.
 	sprite.options.GeoM.Reset()
 	sprite.options.GeoM.Scale(sprite.Scale, sprite.Scale)
 	sprite.options.GeoM.Translate(drawX, drawY)
