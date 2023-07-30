@@ -118,13 +118,17 @@ func (sprite *Sprite) SetAnimation(animation *Animation, repeat bool) {
 	sprite.last = time.Now()
 }
 
-func (sprite *Sprite) Start() {
+func (sprite *Sprite) Start(at time.Time) {
 	if !sprite.paused {
 		return
 	}
 
+	if at.IsZero() {
+		at = time.Now()
+	}
+
 	sprite.frame = 0
-	sprite.last = time.Now()
+	sprite.last = at
 	sprite.paused = false
 }
 
